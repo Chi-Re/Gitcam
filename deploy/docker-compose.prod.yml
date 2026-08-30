@@ -1,0 +1,95 @@
+# 生产部署编排：web(nginx) + backend(gunicorn) + mysql + minio
+# 对外访问：http://<主机>:8080
+# 与本地开发环境（docker-compose.yml 的 gitcam-mysql/gitcam-minio）容器名和端口均隔离
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: gitcam-prod-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-gitcam_root_prod}
+      MYSQL_DATABASE: gitcam
+      MYSQL_USER: gitcam
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-gitcam_prod}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_prod_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ugitcam", "-p${MYSQL_PASSWORD:-gitcam_prod}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    container_name: gitcam-prod-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-gitcam_minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-gitcam_minio_prod}
+    command: server /data --console-address ":9001"
+    ports:
+      - "9002:9000"
+      - "9003:9001"
+    volumes:
+      - minio_prod_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ../backend
+    container_name: gitcam-prod-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production}
+      DATABASE_URL: mysql+pymysql://gitcam:${MYSQL_PASSWORD:-gitcam_prod}@mysql:3306/gitcam?charset=utf8mb4
+      REPO_ROOT: /data/repos
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-gitcam_minio}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-gitcam_minio_prod}
+      MINIO_BUCKET: gitcam-files
+      MINIO_SECURE: "false"
+      EXTERNAL_BASE_URL: ${EXTERNAL_BASE_URL:-http://127.0.0.1:8080}
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      MAIL_SMTP_HOST: ${MAIL_SMTP_HOST:-}
+      MAIL_SMTP_PORT: ${MAIL_SMTP_PORT:-465}
+      MAIL_SMTP_USER: ${MAIL_SMTP_USER:-}
+      MAIL_SMTP_PASSWORD: ${MAIL_SMTP_PASSWORD:-}
+      MAIL_USE_SSL: ${MAIL_USE_SSL:-true}
+      MAIL_FROM: ${MAIL_FROM:-gitcam@localhost}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-4}
+    ports:
+      - "18000:5000"
+    volumes:
+      - repos_prod_data:/data/repos
+      - uploads_prod_data:/data/uploads
+
+  web:
+    build: ../frontend
+    container_name: gitcam-prod-web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  mysql_prod_data:
+  minio_prod_data:
+  repos_prod_data:
+  uploads_prod_data:

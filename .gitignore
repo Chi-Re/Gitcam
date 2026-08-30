@@ -1,0 +1,18 @@
+# Python
+backend/venv/
+__pycache__/
+*.pyc
+backend/.env
+
+# Node / 前端
+frontend/node_modules/
+frontend/dist/
+frontend/dev.log
+
+# 运行时数据（Git 裸仓库 / 上传文件 / 日志）
+backend/data/
+backend/server.log
+
+# 系统
+.DS_Store
+*.log

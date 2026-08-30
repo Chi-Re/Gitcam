@@ -1,0 +1,46 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: gitcam-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: gitcam_root
+      MYSQL_DATABASE: gitcam
+      MYSQL_USER: gitcam
+      MYSQL_PASSWORD: gitcam_dev
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ugitcam", "-pgitcam_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    container_name: gitcam-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: gitcam_minio
+      MINIO_ROOT_PASSWORD: gitcam_minio_dev
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  mysql_data:
+  minio_data:
