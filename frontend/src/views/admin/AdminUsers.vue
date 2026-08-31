@@ -13,6 +13,7 @@
         </div>
       </div>
     </template>
+    <div class="table-wrap">
     <el-table v-loading="loading" :data="items">
       <el-table-column label="ID" width="60" prop="id" />
       <el-table-column label="用户名" width="130" prop="username" />
@@ -58,6 +59,7 @@
         </template>
       </el-table-column>
     </el-table>
+    </div>
     <el-pagination
       v-if="total > perPage"
       layout="prev, pager, next"

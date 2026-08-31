@@ -1,42 +1,43 @@
 <template>
-  <div>
-    <div class="toolbar">
-      <el-radio-group v-model="category" @change="reload">
-        <el-radio-button value="all">全部</el-radio-button>
-        <el-radio-button value="question">问题求助</el-radio-button>
-        <el-radio-button value="share">经验分享</el-radio-button>
-        <el-radio-button value="review">代码评审</el-radio-button>
-        <el-radio-button value="announce">公告</el-radio-button>
-        <el-radio-button value="other">其他</el-radio-button>
-      </el-radio-group>
-      <el-input
-        v-model="q"
-        placeholder="搜索帖子（标题 / 内容）"
-        clearable
-        style="width: 260px"
-        @keyup.enter="reload"
-        @clear="reload"
-      >
-        <template #prefix><el-icon><Search /></el-icon></template>
-      </el-input>
-      <el-select v-model="status" style="width: 110px" @change="reload">
-        <el-option label="全部状态" value="all" />
-        <el-option label="待解决" value="open" />
-        <el-option label="已解决" value="solved" />
-        <el-option label="已关闭" value="closed" />
-      </el-select>
-      <el-select v-model="sort" style="width: 120px" @change="reload">
-        <el-option label="最新发布" value="latest" />
-        <el-option label="最多赞同" value="votes" />
-      </el-select>
-      <el-button v-if="auth.isLoggedIn" type="primary" @click="$router.push('/community/create')">
-        <el-icon><Plus /></el-icon>发帖
-      </el-button>
-    </div>
+  <div class="forum-layout">
+    <div class="forum-main">
+      <div class="toolbar">
+        <el-radio-group v-model="category" @change="reload">
+          <el-radio-button value="all">全部</el-radio-button>
+          <el-radio-button value="question">问题求助</el-radio-button>
+          <el-radio-button value="share">经验分享</el-radio-button>
+          <el-radio-button value="review">代码评审</el-radio-button>
+          <el-radio-button value="announce">公告</el-radio-button>
+          <el-radio-button value="other">其他</el-radio-button>
+        </el-radio-group>
+        <el-input
+          v-model="q"
+          placeholder="搜索帖子（标题 / 内容）"
+          clearable
+          style="width: 260px"
+          @keyup.enter="reload"
+          @clear="reload"
+        >
+          <template #prefix><el-icon><Search /></el-icon></template>
+        </el-input>
+        <el-select v-model="status" style="width: 110px" @change="reload">
+          <el-option label="全部状态" value="all" />
+          <el-option label="待解决" value="open" />
+          <el-option label="已解决" value="solved" />
+          <el-option label="已关闭" value="closed" />
+        </el-select>
+        <el-select v-model="sort" style="width: 120px" @change="reload">
+          <el-option label="最新发布" value="latest" />
+          <el-option label="最多赞同" value="votes" />
+        </el-select>
+        <el-button v-if="auth.isLoggedIn" type="primary" @click="$router.push('/community/create')">
+          <el-icon><Plus /></el-icon>发帖
+        </el-button>
+      </div>
 
-    <el-card v-loading="loading">
-      <el-empty v-if="!items.length && !loading" description="暂无帖子，来发第一帖吧" />
-      <div v-for="p in items" :key="p.id" class="post-item" @click="$router.push(`/community/${p.id}`)">
+      <el-card v-loading="loading">
+        <el-empty v-if="!items.length && !loading" description="暂无帖子，来发第一帖吧" />
+        <div v-for="p in items" :key="p.id" class="post-item" @click="$router.push(`/community/${p.id}`)">
         <div class="stats">
           <div class="stat">
             <div class="num">{{ p.vote_count }}</div>
@@ -69,7 +70,49 @@
         @current-change="onPageChange"
         class="pagination"
       />
-    </el-card>
+      </el-card>
+    </div>
+
+    <!-- 右侧信息栏 -->
+    <div class="forum-side">
+      <el-card class="side-card">
+        <template #header>本周热门</template>
+        <el-empty v-if="!hotPosts.length" description="暂无数据" :image-size="40" />
+        <div
+          v-for="(p, i) in hotPosts"
+          :key="p.id"
+          class="side-item"
+          @click="$router.push(`/community/${p.id}`)"
+        >
+          <span class="rank" :class="{ top: i < 3 }">{{ i + 1 }}</span>
+          <div class="side-item-body">
+            <div class="side-item-title">{{ p.title }}</div>
+            <div class="side-item-meta">
+              <el-icon><Top /></el-icon> {{ p.vote_count }}
+              <el-icon><ChatDotRound /></el-icon> {{ p.reply_count }}
+            </div>
+          </div>
+        </div>
+      </el-card>
+
+      <el-card class="side-card">
+        <template #header>最近提问</template>
+        <el-empty v-if="!recentQuestions.length" description="暂无数据" :image-size="40" />
+        <div
+          v-for="p in recentQuestions"
+          :key="p.id"
+          class="side-item"
+          @click="$router.push(`/community/${p.id}`)"
+        >
+          <div class="side-item-body">
+            <div class="side-item-title">{{ p.title }}</div>
+            <div class="side-item-meta">
+              {{ p.author?.full_name }} · {{ formatTime(p.created_at) }}
+            </div>
+          </div>
+        </div>
+      </el-card>
+    </div>
   </div>
 </template>
 
@@ -90,6 +133,17 @@ const q = ref('')
 const page = ref(1)
 const perPage = 20
 const total = ref(0)
+const hotPosts = ref<CommunityPost[]>([])
+const recentQuestions = ref<CommunityPost[]>([])
+
+async function loadSidebar() {
+  const [hot, recent] = await Promise.all([
+    communityApi.list({ sort: 'votes', per_page: 5, status: 'all' }),
+    communityApi.list({ category: 'question', status: 'open', per_page: 5 }),
+  ])
+  hotPosts.value = (hot as { items: CommunityPost[] }).items
+  recentQuestions.value = (recent as { items: CommunityPost[] }).items
+}
 
 async function load() {
   loading.value = true
@@ -123,16 +177,98 @@ function formatTime(t: string) {
   return t ? new Date(t).toLocaleString('zh-CN') : '-'
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  loadSidebar()
+})
 </script>
 
 <style scoped>
+.forum-layout {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.forum-main {
+  flex: 1;
+  min-width: 0;
+}
 .toolbar {
   display: flex;
   gap: 10px;
   margin-bottom: 16px;
   flex-wrap: wrap;
   align-items: center;
+}
+.forum-side {
+  width: 280px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+}
+@media (min-width: 768px) and (max-width: 991px) {
+  .forum-side {
+    width: 240px;
+  }
+}
+@media (max-width: 767px) {
+  .forum-layout {
+    flex-direction: column;
+  }
+  .forum-side {
+    width: 100%;
+    position: static;
+  }
+}
+.side-card {
+  margin-bottom: 16px;
+}
+.side-item {
+  display: flex;
+  gap: 10px;
+  padding: 8px 4px;
+  cursor: pointer;
+  border-radius: 4px;
+  align-items: flex-start;
+}
+.side-item:hover {
+  background: #f5f7fa;
+}
+.rank {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: #f0f2f5;
+  color: #909399;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.rank.top {
+  background: #ecf5ff;
+  color: #409eff;
+  font-weight: 600;
+}
+.side-item-body {
+  flex: 1;
+  min-width: 0;
+}
+.side-item-title {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.side-item-meta {
+  color: #909399;
+  font-size: 11.5px;
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .post-item {
   display: flex;

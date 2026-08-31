@@ -55,6 +55,83 @@ def read_notification():
     return {"ok": True}
 
 
+@bp.get("/me/project-stats")
+@login_required
+def my_project_stats():
+    """项目统计：我的项目 / 参与项目 / 公开项目（项目列表页统计条）"""
+    from app.models import Project, ProjectMember
+
+    owned = Project.query.filter_by(owner_id=g.user.id).count()
+    participated = ProjectMember.query.filter_by(user_id=g.user.id).count()
+    public = Project.query.filter_by(visibility="public").count()
+    return {"owned": owned, "participated": participated, "public": public}
+
+
+@bp.get("/me/issue-todos")
+@login_required
+def my_issue_todos():
+    """我的待办：指派给我且未关闭的 Issue（前 5 条，含项目名）"""
+    from app.models import Issue, Project, STATUS_LABELS
+
+    rows = (
+        db.session.query(Issue, Project.name)
+        .join(Project, Issue.project_id == Project.id)
+        .filter(Issue.assignee_id == g.user.id, Issue.status.in_(["open", "in_progress"]))
+        .order_by(Issue.updated_at.desc(), Issue.id.desc())
+        .limit(5)
+        .all()
+    )
+    return {
+        "items": [
+            {
+                "id": issue.id,
+                "title": issue.title,
+                "status": issue.status,
+                "status_label": STATUS_LABELS.get(issue.status, issue.status),
+                "priority": issue.priority,
+                "project_id": issue.project_id,
+                "project_name": project_name,
+                "project_slug": issue.project.slug if issue.project else None,
+                "updated_at": issue.updated_at.isoformat() if issue.updated_at else None,
+            }
+            for issue, project_name in rows
+        ]
+    }
+
+
+@bp.get("/me/recent-projects")
+@login_required
+def my_recent_projects():
+    """我参与的项目，按最近更新排序（首页右栏）"""
+    from app.models import ProjectMember, Project
+
+    my_ids = {m.project_id for m in ProjectMember.query.filter_by(user_id=g.user.id).all()}
+    my_ids.add(g.user.id)
+    own_ids = {p.id for p in Project.query.filter_by(owner_id=g.user.id).all()}
+    accessible = my_ids | own_ids
+    projects = (
+        Project.query.filter(Project.id.in_(accessible))
+        .order_by(Project.updated_at.desc(), Project.id.desc())
+        .limit(6)
+        .all()
+    )
+    return {
+        "projects": [
+            {
+                "id": p.id,
+                "name": p.name,
+                "slug": p.slug,
+                "description": p.description,
+                "visibility": p.visibility,
+                "owner_name": p.owner.full_name if p.owner else None,
+                "member_count": p.members.count(),
+                "updated_at": p.updated_at.isoformat() if p.updated_at else None,
+            }
+            for p in projects
+        ]
+    }
+
+
 @bp.get("/me/reply-history")
 @login_required
 def my_reply_history():

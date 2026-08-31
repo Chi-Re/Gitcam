@@ -78,6 +78,16 @@ def _save_snippets(post_id, reply_id, snippets, content=None):
     return created, content, None
 
 
+# ---------- 站点公告（公开） ----------
+
+@bp.get("/announcement")
+def announcement():
+    from app.models import SiteSetting
+
+    setting = SiteSetting.query.filter_by(key="site_announcement").first()
+    return {"announcement": (setting.value if setting and setting.value else None)}
+
+
 # ---------- 公共仓库选择器 ----------
 
 @bp.get("/public-projects")

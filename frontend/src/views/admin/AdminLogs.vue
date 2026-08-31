@@ -10,6 +10,7 @@
       </div>
     </template>
 
+    <div class="table-wrap">
     <el-table v-loading="loading" :data="items">
       <template v-if="kind === 'login'">
         <el-table-column label="ID" width="70" prop="id" />
@@ -41,6 +42,7 @@
         </el-table-column>
       </template>
     </el-table>
+    </div>
 
     <el-pagination
       v-if="total > perPage"

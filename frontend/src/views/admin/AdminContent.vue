@@ -7,7 +7,8 @@
         <div class="tab-bar">
           <el-input v-model="projectQ" placeholder="搜索项目名/标识" clearable size="small" style="width: 240px" @keyup.enter="loadProjects" @clear="loadProjects" />
         </div>
-        <el-table v-loading="loading" :data="projects">
+        <div class="table-wrap">
+    <el-table v-loading="loading" :data="projects">
           <el-table-column label="ID" width="60" prop="id" />
           <el-table-column label="名称" min-width="160">
             <template #default="{ row }">{{ row.name }}</template>
@@ -29,6 +30,7 @@
             </template>
           </el-table-column>
         </el-table>
+    </div>
       </el-tab-pane>
 
       <!-- 帖子 -->
@@ -36,7 +38,8 @@
         <div class="tab-bar">
           <el-input v-model="postQ" placeholder="搜索帖子标题" clearable size="small" style="width: 240px" @keyup.enter="loadPosts" @clear="loadPosts" />
         </div>
-        <el-table v-loading="loading" :data="posts">
+        <div class="table-wrap">
+    <el-table v-loading="loading" :data="posts">
           <el-table-column label="ID" width="60" prop="id" />
           <el-table-column label="标题" min-width="200" prop="title" />
           <el-table-column label="分类" width="100">
@@ -51,6 +54,7 @@
             </template>
           </el-table-column>
         </el-table>
+    </div>
       </el-tab-pane>
     </el-tabs>
 

@@ -126,8 +126,22 @@ export interface ReplyHistoryItem {
   created_at: string
 }
 
+export interface RecentProject {
+  id: number
+  name: string
+  slug: string
+  description: string | null
+  visibility: string
+  owner_name: string | null
+  member_count: number
+  updated_at: string
+}
+
 export const userApi = {
   publicProfile: (username: string) => http.get(`/users/${username}`),
+  recentProjects: () => http.get('/users/me/recent-projects'),
+  projectStats: () => http.get('/users/me/project-stats'),
+  issueTodos: () => http.get('/users/me/issue-todos'),
   notifications: (params?: Record<string, unknown>) =>
     http.get('/users/me/notifications', { params }),
   readNotification: (data: Record<string, unknown>) =>
@@ -466,6 +480,7 @@ export const communityApi = {
   acceptReply: (postId: number, replyId: number) =>
     http.post(`/community/posts/${postId}/replies/${replyId}/accept`),
   publicProjects: () => http.get('/community/public-projects'),
+  announcement: () => http.get('/community/announcement'),
 }
 
 export const storageApi = {

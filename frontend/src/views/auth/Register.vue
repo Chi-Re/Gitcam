@@ -97,7 +97,7 @@ async function onSubmit() {
     auth.user = data.user
     localStorage.setItem('gitcam_token', data.token)
     ElMessage.success('注册成功，欢迎加入 gitcam')
-    router.push('/projects')
+    router.push('/home')
   } finally {
     loading.value = false
   }

@@ -14,6 +14,7 @@
       </div>
     </template>
 
+    <div class="table-wrap">
     <el-table :data="members">
       <el-table-column label="成员" min-width="200">
         <template #default="{ row }">
@@ -53,6 +54,7 @@
         </template>
       </el-table-column>
     </el-table>
+    </div>
 
     <el-dialog v-model="showAdd" title="添加成员" width="420px">
       <el-form label-width="90px">

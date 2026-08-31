@@ -2,7 +2,12 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const routes = [
-  { path: '/', redirect: '/projects' },
+  {
+    path: '/',
+    name: 'landing',
+    component: () => import('@/views/Landing.vue'),
+    meta: { title: 'gitcam', public: true },
+  },
   {
     path: '/login',
     name: 'login',
@@ -19,6 +24,12 @@ const routes = [
     path: '/',
     component: () => import('@/views/Layout.vue'),
     children: [
+      {
+        path: 'home',
+        name: 'home',
+        component: () => import('@/views/Home.vue'),
+        meta: { title: '首页' },
+      },
       {
         path: 'admin',
         component: () => import('@/views/admin/AdminLayout.vue'),
@@ -185,6 +196,14 @@ router.beforeEach(async (to) => {
   const auth = useAuthStore()
   if (!auth.loaded && localStorage.getItem('gitcam_token')) {
     await auth.fetchMe()
+  }
+  // 已登录访问落地页 → 首页
+  if (to.name === 'landing' && auth.isLoggedIn) {
+    return { name: 'home' }
+  }
+  // 未登录访问首页 → 落地页
+  if (to.name === 'home' && !auth.isLoggedIn) {
+    return { name: 'landing' }
   }
   if (!to.meta.public && !auth.isLoggedIn) {
     return { name: 'login', query: { redirect: to.fullPath } }

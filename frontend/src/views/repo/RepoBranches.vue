@@ -9,6 +9,7 @@
       </div>
     </template>
 
+    <div class="table-wrap">
     <el-table :data="branches">
       <el-table-column label="分支" min-width="200">
         <template #default="{ row }">
@@ -42,6 +43,7 @@
         </template>
       </el-table-column>
     </el-table>
+    </div>
 
     <el-divider v-if="tags.length" content-position="left">标签</el-divider>
     <div v-if="tags.length" class="tag-list">

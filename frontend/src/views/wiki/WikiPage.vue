@@ -1,6 +1,6 @@
 <template>
   <div class="wiki-layout" v-loading="loading">
-    <div class="wiki-sidebar">
+    <div class="wiki-sidebar" v-if="!isMobile">
       <el-card class="sidebar-card">
         <template #header>
           <div class="sidebar-head">
@@ -30,6 +30,9 @@
         <template #header>
           <div class="content-head" v-if="current">
             <div class="head-left">
+              <el-button v-if="isMobile" size="small" text class="sidebar-toggle" @click="drawerOpen = true">
+                <el-icon :size="16"><Menu /></el-icon>
+              </el-button>
               <span class="page-title">{{ current.title }}</span>
               <el-tag size="small" effect="plain">v{{ current.version }}</el-tag>
             </div>
@@ -116,11 +119,38 @@
         <el-empty v-if="!versions.length" description="暂无历史版本" :image-size="50" />
       </div>
     </el-dialog>
+
+    <!-- 手机端：页面列表抽屉 -->
+    <el-drawer v-model="drawerOpen" title="Wiki 页面" size="260px">
+      <el-card class="sidebar-card" :body-style="{ padding: '0' }">
+        <div
+          v-for="p in sortedPages"
+          :key="p.id"
+          class="page-item"
+          :class="{ active: current?.id === p.id }"
+          :style="{ paddingLeft: 12 + p.depth * 18 + 'px' }"
+          @click="openPage(p); drawerOpen = false"
+        >
+          <FileTypeIcon :name="p.title + '.md'" :size="14" />
+          <span>{{ p.title }}</span>
+        </div>
+        <el-empty v-if="!pages.length" description="暂无页面" :image-size="50" />
+      </el-card>
+      <el-button
+        v-if="myRole !== 'viewer'"
+        type="primary"
+        plain
+        style="width: 100%; margin-top: 12px"
+        @click="drawerOpen = false; startCreate()"
+      >
+        <el-icon><Plus /></el-icon>新建页面
+      </el-button>
+    </el-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { projectApi, wikiApi, type Project, type WikiPage, type WikiVersion } from '@/api'
@@ -134,6 +164,8 @@ interface PageNode extends WikiPage {
 const route = useRoute()
 const router = useRouter()
 const slug = route.params.slug as string
+const drawerOpen = ref(false)
+const isMobile = ref(window.innerWidth < 768)
 const loading = ref(false)
 const pageLoading = ref(false)
 const pages = ref<PageNode[]>([])
@@ -290,9 +322,19 @@ function formatTime(t: string) {
 }
 
 onMounted(async () => {
+  window.addEventListener('resize', onResize)
   await loadTree()
   const first = pages.value[0]
   if (first) openPage(first)
+})
+
+function onResize() {
+  isMobile.value = window.innerWidth < 768
+  if (!isMobile.value) drawerOpen.value = false
+}
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onResize)
 })
 </script>
 
@@ -301,6 +343,14 @@ onMounted(async () => {
   display: flex;
   gap: 16px;
   align-items: flex-start;
+}
+@media (max-width: 767px) {
+  .wiki-layout {
+    flex-direction: column;
+  }
+  .sidebar-toggle {
+    padding: 4px;
+  }
 }
 .wiki-sidebar {
   width: 260px;

@@ -103,3 +103,19 @@ body {
   font-weight: 500;
   text-decoration: none;
 }
+
+/* 表格横向滚动容器（移动端防破版） */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-wrap .el-table {
+  min-width: 640px;
+}
+
+/* 窄屏工具类 */
+@media (max-width: 767px) {
+  .hide-xs {
+    display: none !important;
+  }
+}

@@ -15,6 +15,8 @@
           <span>默认分支：{{ project.default_branch }}</span>
           <span>提交数：{{ project.commit_count ?? '-' }}</span>
           <span>成员：{{ project.member_count }}</span>
+          <span>标签：<el-tag v-for="t in project.tags" :key="t" size="small" type="primary" effect="plain" class="tag-item">{{ t }}</el-tag></span>
+          <span>更新于：{{ formatTime(project.updated_at) }}</span>
         </div>
         <div class="git-url">
           <span class="label">git clone 地址：</span>
@@ -105,6 +107,10 @@ function copyGitUrl() {
   }
 }
 
+function formatTime(t: string) {
+  return t ? new Date(t).toLocaleDateString('zh-CN') : '-'
+}
+
 onMounted(load)
 </script>
 
@@ -133,6 +139,11 @@ onMounted(load)
   gap: 20px;
   color: #909399;
   font-size: 13px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.tag-item {
+  margin-right: 2px;
 }
 .git-url {
   margin-top: 12px;

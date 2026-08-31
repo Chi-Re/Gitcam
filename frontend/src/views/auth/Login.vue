@@ -65,7 +65,7 @@ async function onSubmit() {
   try {
     await auth.login(form.account, form.password)
     ElMessage.success('登录成功')
-    router.push((route.query.redirect as string) || '/projects')
+    router.push((route.query.redirect as string) || '/home')
   } finally {
     loading.value = false
   }

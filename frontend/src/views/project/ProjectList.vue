@@ -1,5 +1,20 @@
 <template>
   <div>
+    <div class="stats-row">
+      <el-card class="stat-card" shadow="never">
+        <div class="stat-num">{{ myProjectCount }}</div>
+        <div class="stat-label">我的项目</div>
+      </el-card>
+      <el-card class="stat-card" shadow="never">
+        <div class="stat-num">{{ publicCount }}</div>
+        <div class="stat-label">公开项目</div>
+      </el-card>
+      <el-card class="stat-card" shadow="never">
+        <div class="stat-num">{{ memberCount }}</div>
+        <div class="stat-label">参与项目</div>
+      </el-card>
+    </div>
+
     <div class="toolbar">
       <el-input
         v-model="query"
@@ -20,7 +35,8 @@
       </el-button>
     </div>
 
-    <el-table v-loading="loading" :data="projects" class="project-table">
+    <div class="table-wrap">
+      <el-table v-loading="loading" :data="projects" class="project-table">
       <el-table-column label="项目" min-width="280">
         <template #default="{ row }">
           <div class="project-name" @click="$router.push(`/projects/${row.slug}`)">
@@ -58,6 +74,7 @@
         <template #default="{ row }">{{ formatTime(row.updated_at) }}</template>
       </el-table-column>
     </el-table>
+    </div>
 
     <el-pagination
       v-if="total > perPage"
@@ -74,7 +91,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { projectApi, type Project } from '@/api'
+import { projectApi, userApi, type Project } from '@/api'
 
 const router = useRouter()
 const projects = ref<Project[]>([])
@@ -84,6 +101,16 @@ const visibility = ref('')
 const page = ref(1)
 const perPage = 20
 const total = ref(0)
+const myProjectCount = ref(0)
+const publicCount = ref(0)
+const memberCount = ref(0)
+
+async function loadStats() {
+  const data = await userApi.projectStats() as { owned: number; participated: number; public: number }
+  myProjectCount.value = data.owned
+  memberCount.value = data.participated
+  publicCount.value = data.public
+}
 
 async function load() {
   loading.value = true
@@ -120,10 +147,33 @@ function formatTime(t: string) {
   return t ? new Date(t).toLocaleString('zh-CN') : '-'
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  loadStats()
+})
 </script>
 
 <style scoped>
+.stats-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.stat-card {
+  flex: 1;
+  text-align: center;
+  --el-card-border-radius: 10px;
+}
+.stat-num {
+  font-size: 26px;
+  font-weight: 700;
+  color: #409eff;
+}
+.stat-label {
+  color: #909399;
+  font-size: 13px;
+  margin-top: 4px;
+}
 .toolbar {
   display: flex;
   gap: 12px;
